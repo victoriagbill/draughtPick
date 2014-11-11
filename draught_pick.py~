@@ -170,26 +170,6 @@ class UploadURL(webapp2.RequestHandler):
 		self.response.write(url_data)
 		webapp2.Response(url_data)
 
-class NotFoundPageHandler(webapp2.RequestHandler):
-	def get(self):
-		self.error(404)
-		user = users.get_current_user()
-		if user:
-			url = users.create_logout_url('/')
-			url_linktext = 'Logout'
-		else:
-			url = users.create_login_url(self.request.uri)
-			url_linktext = 'Login'
-		template_values = {
-      'url': url,
-      'url_linktext': url_linktext,
-  	}
-		template_values['error_msg'] = 'Error: you attempted to reach a stream or page that does not exist. '
-		
-		template = JINJA_ENVIRONMENT.get_template('error.html')
-		self.response.write(template.render(template_values))	
-
-
 
 application = webapp2.WSGIApplication([
   ('/', MainPage),
@@ -200,11 +180,25 @@ application = webapp2.WSGIApplication([
 	('/emails/([^/]+)?', EmailUpdated),
 	('/search', Search),
 	('/searchstreams', SearchStreams),
+	('/trending', Trending),
+	('/uptrend', UpdateTrending),
+	('/trendingShort', TrendingShort),
+	('/trendingHourly', TrendingHourly),
+	('/trendingDaily', TrendingDaily),
+	('/social', Social),
+	('/upload', UploadHandler),
+	('/upload2', UploadHandler2),
+	('/geo/([^/]+)?', buildGeo),
+	('/delete', DeleteStream),
+	('/serve/([^/]+)?', ServeHandler),
+	('/error/([^/]+)?', ErrorHandler),
+	('/refreshAutoComplete', refreshAutoComplete),
 	('/viewandroid', ViewAndroid),
 	('/viewsingleandroid/([^/]+)?', ViewSingleAndroid),
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
 	('/uploadandroid', UploadAndroid),
 	('/imageurl', UploadURL),
+	('/deleteimage/([^/]+)?', deleteImage),
 	('/.*', NotFoundPageHandler),
 ], debug=True)
 
