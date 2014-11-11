@@ -1,0 +1,130 @@
+body {
+  font-family: Verdana, sans-serif;
+  /*background-color: #DDDDDD;*/
+	padding-left: 28px;
+	padding-right: 30px;
+}
+
+h1 {
+  font-size: 50px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 40px;
+}
+
+h3 {
+	font-size: 20px;
+}
+
+h4 {
+	font-size: 16px:
+}
+
+a {
+  color: #29537C;
+	text-decoration: none;
+
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+header {
+	z-index: 1;
+	text-align: center;
+	font-size: 40px;
+	border-bottom: 2px solid black;
+	width: 70%;
+	margin-left: 15%;
+}
+
+
+
+nav {
+	width: 100%;
+	float: center;
+	text-align: center;
+	font-size: 34px;
+	word-spacing: 30px;
+	margin-bottom: 30px;
+	font-style: bold;
+}
+
+p {
+	width: 100%;
+}
+
+table {
+	width: 100%;
+	text-align: left;
+}
+
+td {
+	width: 270px;
+}
+
+td+td {
+	width: auto;
+}
+
+textarea {
+	font-style: italic;
+}
+
+#del {
+	width: 10%;
+
+}
+
+#create-box {
+	width: 45%;
+	float: left;
+	padding-right: 10%;
+}
+
+#img-box {
+	width: 25%;
+	float: left;
+	margin-bottom: 40px;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.thumb {
+  max-width: 150px;
+  max-height: 150px;
+}
+
+#manage-box {
+	padding-left: 20px;
+}
+
+#add-box {
+	width: 100%;
+	float: left;
+	/*border-style: solid;
+	border-width: 2px;
+	padding: 16px;*/
+	margin-bottom: 40px;
+}
+
+#sub-box {
+	width: 100%;
+	float: left;
+}
+
+
+section {
+	width: 25%;
+	float: left;
+	z-index: 3;
+}
+
+footer {
+	width: 100%;
+	float: left;
+	z-index: 5;
+}

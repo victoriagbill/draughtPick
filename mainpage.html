@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en-us">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script> 
+	<script type="text/javascript" src="/js/lightbox.min.js"></script>
+	<script type="text/javascript" src="/js/scripts.js"></script>
+	<!--<link rel="stylesheet" href="/css/screen.css" /> -->
+	<link rel="stylesheet" href="/css/lightbox.css" /> 
+	<!-- Bootstrap styles, makes the buttons nice, just copy that into my css? don't like other elements... -->
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+	<!-- CSS to style the file input field as button and adjust the Bootstrap progress bars -->
+	<link rel="stylesheet" href="/css/jquery.fileupload.css">
+	<link rel="stylesheet" href="/css/jquery.fileupload-ui.css">
+	<link rel="stylesheet" href="/stylesheets/main.css" /> 
+</head>
+  <body>
+	<header>
+		<h2>Connex.us</h2>
+	</header>
+	
+	<nav>
+		<h3><a href="/manage">Manage</a> | <a href="/create">Create</a> | <a href="/viewall">View</a> | <a href="/search">Search</a> | <a href="/trending">Trending</a> | <a href="/social">Social</a> </h3>
+	</nav>
+
+	</br>
+
+	<p><b>{{ greeting }}</b></p>
+	<p>{{ command }}</p>
+
+	</br>
+	
+	{% if streams %}
+		<h3>Streams I own</h3></br>
+		<table rules="cols" frame="mhs" class="table">
+			<tr>
+				<th>Name</th>
+				<th>Last New Picture</th>
+				<th>Number of Pictures</th>
+				<th>Delete</th>
+			</tr>
+			{% for stream in streams %}
+				<tr>
+					<td>
+						<b><a href="/viewsingle/{{ stream }}">{{ stream }}<a></b>
+					</td>
+					<td>
+						{{ streams[stream][stream]['stream_urls'][-1][1] }}
+					</td>
+					<td>
+						{{ streams[stream][stream]['stream_len'] }}
+					</td>
+					<td>
+						<form action="/manage" method="post">
+							<input type="checkbox" name="delete" value="{{ stream }}">
+							
+					</td>
+				</tr> 
+			{% endfor %}
+			
+		</table>
+
+						<button type="submit" class="btn btn-danger delete">
+                  <i class="glyphicon glyphicon-trash"></i>
+                  <span>Delete checked</span>
+             </button>
+					</form>
+	{% endif %}
+
+</br>
+	{% if subs %}
+		</br>
+		</br>
+		<h3>Streams I subscribe to</h3></br>
+
+		<table rules="cols" frame="mhs" class="table">
+			<tr>
+				<th>Name</th>
+				<th>Last New Picture</th>
+				<th>Number of Pictures</th>
+				<th>Views</th>
+				<th>Unsubscribe</th>
+			</tr>
+			{% for stream in subs %}
+				<tr>
+					<td>
+						<b><a href="/viewsingle/{{ stream }}">{{ stream }}<a></b>
+					</td>
+					<td>
+						{{ subs[stream][stream]['stream_urls'][-1][1] }}
+					</td>
+					<td>
+						{{ subs[stream][stream]['stream_len'] }}
+					</td>
+					<td>
+						{{ subs[stream][stream]['views'] }}
+					</td>
+					<td>
+						<form action="/manage" method="post">
+							<input type="checkbox" name="unsub" value="{{ stream }}">
+					</td>
+				</tr> 
+			{% endfor %}
+		</table>
+						<button type="submit" class="btn btn-warning delete">
+                 <i class="glyphicon glyphicon-remove"></i>
+                  <span>Unsubscribe checked</span>
+             </button>
+					</form>
+
+	
+	{% endif %}
+	
+
+	<footer>
+		</br>
+		<hr>
+		<p>&copy; Victoria Bill and Steve Rutherford</p>
+
+		<a href="{{ url|safe }}">{{ url_linktext }}</a> 
+	</footer>
+
+	</body>
+</html>
+{% endautoescape %}

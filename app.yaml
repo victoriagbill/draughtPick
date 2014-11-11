@@ -1,0 +1,33 @@
+application: draught-pick
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+builtins:
+- deferred: on
+
+handlers:
+- url: /stylesheets
+  static_dir: stylesheets
+
+- url: /css
+  static_dir: css
+
+- url: /js
+  static_dir: js
+
+- url: /img
+  static_dir: img
+
+- url: /ui
+  static_dir: ui
+
+- url: /.*
+  script: draught_pick.application
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
