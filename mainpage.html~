@@ -7,8 +7,13 @@
 	
 	<script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script> 
 	<script type="text/javascript" src="/js/lightbox.min.js"></script>
+	<script type="text/javascript" src="/js/scripts.js"></script>
 	<!--<link rel="stylesheet" href="/css/screen.css" /> -->
 	<link rel="stylesheet" href="/css/lightbox.css" /> 
+	<!-- Bootstrap styles, makes the buttons nice, just copy that into my css? don't like other elements... -->
+
+	<!-- CSS to style the file input field as button and adjust the Bootstrap progress bars -->
+
 	<link rel="stylesheet" href="/stylesheets/main.css" /> 
 </head>
   <body>

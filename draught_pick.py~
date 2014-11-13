@@ -17,6 +17,9 @@ import jinja2
 import webapp2
 import re
 import json
+#import boto
+#import boto.manage.cmdshell
+#import paramiko
 
 
 
@@ -29,14 +32,50 @@ JINJA_ENVIRONMENT = jinja2.Environment(
   autoescape=True)
 
 
-class ImageStream(ndb.Model):
-	# models image stream with stream_name, owner, subscriber?
-	# need json dumb/property for all other info?
-	# stream1.put() creates in datastore, stream1.get()?
-	# can use @classmethod to create a default query? get all?
-	stream_name = ndb.StringProperty()
-	info = ndb.JsonProperty()
+class BeerStream(ndb.Model):
+	# change for Draught Pick model
+	bar_name = ndb.StringProperty()
+	beer_name = ndb.StringProperty()
+	brewery_name = ndb.StringProperty()
+	rating = ndb.IntegerProperty()
+	info = ndb.JsonProperty() 
 	timestamps = ndb.StringProperty(repeated=True)
+
+
+'''
+def upload_file(instance, key, username, local_filepath, remote_filepath):
+    """
+    Upload a file to a remote directory using SFTP. All parameters except
+    for "instance" are strings. The instance parameter should be a
+    boto.ec2.instance.Instance object.
+ 
+    instance        An EC2 instance to upload the files to.
+    key             The file path for a valid SSH key which can be used to
+                    log in to the EC2 machine.
+    username        The username to log in as.
+    local_filepath  The path to the file to upload.
+    remote_filepath The path where the file should be uploaded to.
+    """
+    ssh_client = boto.manage.cmdshell.sshclient_from_instance(
+        instance,
+        key,
+        user_name=username
+    )
+    ssh_client.put_file(local_filepath, remote_filepath)
+
+# write class to test linking to AWS EC2 server
+# uses boto module
+# hard code an image for now
+class talkAWS(webapp2.RequestHandler):
+	ec2 = boto.connect_ec2()
+	key_pair = ec2.create_key_pair('ec2-sample-key')  # only needs to be done once
+	key_pair.save('~/Desktop')
+	reservation = ec2.run_instances(image_id='ami-bb709dd2', key_name='ec2-sample-key')
+	print reservation.instances
+	instance = reservation.instances[0]
+	print instance.state
+boto ec2 example
+'''
 
 
 class MainPage(webapp2.RequestHandler):
@@ -52,7 +91,7 @@ class MainPage(webapp2.RequestHandler):
 			'url': url,
  			'url_linktext': url_linktext,
  			}
-			template = JINJA_ENVIRONMENT.get_template('manage.html')
+			template = JINJA_ENVIRONMENT.get_template('mainpage.html')
 			self.response.write(template.render(template_values))
 		else:
 			greeting = 'Sign in or register:'
@@ -63,7 +102,7 @@ class MainPage(webapp2.RequestHandler):
 				'url': url,
  				'url_linktext': url_linktext,
  			}
-			template = JINJA_ENVIRONMENT.get_template('cnxs_index.html')
+			template = JINJA_ENVIRONMENT.get_template('mainpage.html')
  			self.response.write(template.render(template_values))
 
 
@@ -72,7 +111,7 @@ class MainPage(webapp2.RequestHandler):
 class ViewAndroid(webapp2.RequestHandler):
 	def get(self):
 		#don't need to check for user info?
-		all_streams = ImageStream.query().fetch()
+		all_streams = BeerStream.query().fetch()
 		img_info = {}
 		test = {}
 		for x in xrange(len(all_streams)):
@@ -98,7 +137,7 @@ class ViewSingleAndroid(webapp2.RequestHandler):
 	# android needs to pass in stream_name in url for view single
 	def get(self, stream_name):
 		#don't need to check for user info?
-		single_stream = ImageStream.query(ImageStream.stream_name == stream_name).fetch()
+		single_stream = BeerStream.query(BeerStream.stream_name == stream_name).fetch()
 		single_stream[0].info[stream_name]['views'] += 1
 		single_stream[0].timestamps.append(str(datetime.now()))
 		single_stream[0].put()
@@ -124,7 +163,7 @@ class ViewNearbyAndroid(webapp2.RequestHandler):
 		#don't need to check for user info?
 		#query should then check location and get locations where difference is less than some_distance
 		#calculate abs distance from latitude and longitude?
-		nearby_streams = ImageStream.query().fetch()
+		nearby_streams = BeerStream.query().fetch()
 		img_info = {}
 		test = {}
 		for x in xrange(len(nearby_streams)):
@@ -153,7 +192,7 @@ class UploadAndroid(blobstore_handlers.BlobstoreUploadHandler):
 		upload_files = self.get_uploads('file')	
 		blob_info = upload_files[0]
 		upload_time = datetime.now()
-		single_stream = ImageStream.query(ImageStream.stream_name == stream_name).fetch()
+		single_stream = BeerStream.query(BeerStream.stream_name == stream_name).fetch()
 		single_stream[0].info[stream_name]['stream_urls'].append((images.get_serving_url(blob_info.key()), str(upload_time.date())))
 		single_stream[0].info[stream_name]['stream_len'] += 1
 		single_stream[0].put()
@@ -170,35 +209,34 @@ class UploadURL(webapp2.RequestHandler):
 		self.response.write(url_data)
 		webapp2.Response(url_data)
 
+class NotFoundPageHandler(webapp2.RequestHandler):
+	def get(self):
+		self.error(404)
+		user = users.get_current_user()
+		if user:
+			url = users.create_logout_url('/')
+			url_linktext = 'Logout'
+		else:
+			url = users.create_login_url(self.request.uri)
+			url_linktext = 'Login'
+		template_values = {
+      'url': url,
+      'url_linktext': url_linktext,
+  	}
+		template_values['error_msg'] = 'Error: you attempted to reach a stream or page that does not exist. '
+		
+		template = JINJA_ENVIRONMENT.get_template('error.html')
+		self.response.write(template.render(template_values))	
+
+
 
 application = webapp2.WSGIApplication([
   ('/', MainPage),
-	('/manage', Manage),
-	('/create', Create),
-	('/viewall', View),
-	('/viewsingle/([^/]+)?', ViewSingle),
-	('/emails/([^/]+)?', EmailUpdated),
-	('/search', Search),
-	('/searchstreams', SearchStreams),
-	('/trending', Trending),
-	('/uptrend', UpdateTrending),
-	('/trendingShort', TrendingShort),
-	('/trendingHourly', TrendingHourly),
-	('/trendingDaily', TrendingDaily),
-	('/social', Social),
-	('/upload', UploadHandler),
-	('/upload2', UploadHandler2),
-	('/geo/([^/]+)?', buildGeo),
-	('/delete', DeleteStream),
-	('/serve/([^/]+)?', ServeHandler),
-	('/error/([^/]+)?', ErrorHandler),
-	('/refreshAutoComplete', refreshAutoComplete),
 	('/viewandroid', ViewAndroid),
 	('/viewsingleandroid/([^/]+)?', ViewSingleAndroid),
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
 	('/uploadandroid', UploadAndroid),
 	('/imageurl', UploadURL),
-	('/deleteimage/([^/]+)?', deleteImage),
 	('/.*', NotFoundPageHandler),
 ], debug=True)
 
