@@ -2,22 +2,23 @@
 # Created by Victoria Bill and Steve Rutherford
 from __future__ import with_statement
 import os
-import urllib
 from datetime import datetime, timedelta
 import time
 import collections
+from bs4 import BeautifulSoup as bs
 
 from google.appengine.api import users
 from google.appengine.api import mail, images, files
 from google.appengine.ext import ndb
 from google.appengine.ext import blobstore, deferred
 from google.appengine.ext.webapp import blobstore_handlers
+from google.appengine.api import urlfetch
 
 import jinja2
 import webapp2
 import re
 import json
-#import boto
+import boto
 #import boto.manage.cmdshell
 #import paramiko
 
@@ -76,6 +77,28 @@ class talkAWS(webapp2.RequestHandler):
 	print instance.state
 boto ec2 example
 '''
+
+def ask_ba():
+	#opener = urllib2.build_opener()
+	#opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+	url = 'http://beeradvocate.com/beer/profile/63/49472/'
+	result = urlfetch.fetch(url, headers = {'User-Agent': 'Mozilla/5.0'}, method = urlfetch.GET)
+	#page = result.read()
+	soup = bs(result.content)
+	return soup
+ 
+
+class callSoup(webapp2.RequestHandler):
+	def get(self):
+		# add information to parse tesseract data later
+		#	for now want to check that we can crawl beeradvocate reliably enough
+		soup = ask_ba()
+		print type(soup)
+		print len(soup)
+		print soup.title
+		links = soup.find_all('a')
+		print links
+		self.response.write('got here')
 
 
 class MainPage(webapp2.RequestHandler):
@@ -232,6 +255,7 @@ class NotFoundPageHandler(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
   ('/', MainPage),
+	('/callsoup', callSoup),
 	('/viewandroid', ViewAndroid),
 	('/viewsingleandroid/([^/]+)?', ViewSingleAndroid),
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
