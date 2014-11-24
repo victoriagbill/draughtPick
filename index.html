@@ -12,31 +12,24 @@
 	<link rel="stylesheet" href="/stylesheets/main.css" /> 
 </head>
   <body>
-	<header>
-		<h2>Draught Pick</h2>
-	</header>
+	<h1>Welcome to DraughtPick</h1>
+	<hr>
 	
-	<nav>
-		<h3><a href="/">Home</a> | <a href="/create">Create</a></h3>
-
-	</nav>
-
+  <p>{{ greeting }}</p>
+  <a href="{{ url|safe }}">{{ url_linktext }}</a>
+	
 	</br>
+	</br>
+	</br>
+	<hr>
 
-	<p><b>{{ greeting }}</b></p>
-	
+  <!--<form action="/invite" method="post">Testing email invite:
+    <input value="invite_email" name="invite_email">
+    <input type="submit" value="send">
+  </form>
 
+  <!--<a href="{{ url|safe }}">{{ url_linktext }}</a> -->
 
-	
-
-	<footer>
-		</br>
-		<hr>
-		<p>&copy; Victoria Bill and Steve Rutherford</p>
-
-		<a href="{{ url|safe }}">{{ url_linktext }}</a> 
-	</footer>
-
-	</body>
+  </body>
 </html>
 {% endautoescape %}

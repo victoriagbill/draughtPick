@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import time
 import collections
 from bs4 import BeautifulSoup as bs
+import urllib2
+from random import choice
 
 from google.appengine.api import users
 from google.appengine.api import mail, images, files
@@ -18,11 +20,6 @@ import jinja2
 import webapp2
 import re
 import json
-import boto
-#import boto.manage.cmdshell
-#import paramiko
-
-
 
 def cleanup(blob_keys):
     blobstore.delete(blob_keys)
@@ -33,72 +30,121 @@ JINJA_ENVIRONMENT = jinja2.Environment(
   autoescape=True)
 
 
-class BeerStream(ndb.Model):
+# different user agents to use to keep from being banned.
+user_agents = [
+    'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
+    'Opera/9.25 (Windows NT 5.1; U; en)',
+    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+    'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
+    'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.142 Safari/535.19',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:11.0) Gecko/20100101 Firefox/11.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:8.0.1) Gecko/20100101 Firefox/8.0.1',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.151 Safari/535.19'
+]
+
+
+class Vendors(ndb.Model):
 	# change for Draught Pick model
-	bar_name = ndb.StringProperty()
-	beer_name = ndb.StringProperty()
-	brewery_name = ndb.StringProperty()
-	rating = ndb.IntegerProperty()
-	info = ndb.JsonProperty() 
+	location = ndb.StringProperty()
+	vendor_name = ndb.StringProperty()
+	breweries = ndb.StringProperty(repeated=True)
+	ratings = ndb.IntegerProperty(repeated=True)
+	beer_info = ndb.JsonProperty() 
 	timestamps = ndb.StringProperty(repeated=True)
+	# ! want to store beer advocate beer id and brewery id
+	# format is url/beer/profile/brew#/beer#/
+	# beer style is also an id number
+	# /beer/style/152 is English Barleywine
 
 
-'''
-def upload_file(instance, key, username, local_filepath, remote_filepath):
-    """
-    Upload a file to a remote directory using SFTP. All parameters except
-    for "instance" are strings. The instance parameter should be a
-    boto.ec2.instance.Instance object.
- 
-    instance        An EC2 instance to upload the files to.
-    key             The file path for a valid SSH key which can be used to
-                    log in to the EC2 machine.
-    username        The username to log in as.
-    local_filepath  The path to the file to upload.
-    remote_filepath The path where the file should be uploaded to.
-    """
-    ssh_client = boto.manage.cmdshell.sshclient_from_instance(
-        instance,
-        key,
-        user_name=username
-    )
-    ssh_client.put_file(local_filepath, remote_filepath)
+class BeerData(ndb.Model):
+	brewery = ndb.StringProperty()
+	beer = ndb.StringProperty()
+	rating = ndb.StringProperty()
+	abv = ndb.StringProperty()
+	btype = ndb.StringProperty()
+	style_id = ndb.StringProperty()
+	beer_id = ndb.StringProperty()
 
-# write class to test linking to AWS EC2 server
-# uses boto module
-# hard code an image for now
-class talkAWS(webapp2.RequestHandler):
-	ec2 = boto.connect_ec2()
-	key_pair = ec2.create_key_pair('ec2-sample-key')  # only needs to be done once
-	key_pair.save('~/Desktop')
-	reservation = ec2.run_instances(image_id='ami-bb709dd2', key_name='ec2-sample-key')
-	print reservation.instances
-	instance = reservation.instances[0]
-	print instance.state
-boto ec2 example
-'''
 
-def ask_ba():
+def ask_ba(id_num):
 	#opener = urllib2.build_opener()
 	#opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-	url = 'http://beeradvocate.com/beer/profile/63/49472/'
-	result = urlfetch.fetch(url, headers = {'User-Agent': 'Mozilla/5.0'}, method = urlfetch.GET)
+	url = 'http://beeradvocate.com/beer/profile/' + id_num
+	#result = urlfetch.fetch(url, headers = {'User-Agent': 'Mozilla/5.0'}, method = urlfetch.GET)
 	#page = result.read()
-	soup = bs(result.content)
+	#soup = bs(result.content)
+	version = choice(user_agents)
+	headers = { 'User-Agent' : version }
+	req = urllib2.Request(url, None, headers)
+	htmlText = urllib2.urlopen(req).read()
+ 	soup = bs(htmlText)
 	return soup
- 
+
 
 class callSoup(webapp2.RequestHandler):
 	def get(self):
 		# add information to parse tesseract data later
 		#	for now want to check that we can crawl beeradvocate reliably enough
-		soup = ask_ba()
-		print type(soup)
-		print len(soup)
-		print soup.title
-		links = soup.find_all('a')
-		print len(links)
-		self.response.write('got here')
+		id_num = self.request.get_all('id_number')[0]
+		if BeerData.query(BeerData.beer_id==id_num).fetch():
+			print "already have this one"
+			self.redirect('/')
+		else:
+			soup = ask_ba(id_num)
+			print type(soup)
+			print len(soup)
+			print soup.title
+			style = []
+			for link in soup.find_all('a'):
+				if link.get('href'):
+					if 'style' in link.get('href'):
+						style.append(link)
+						abv_text = link.nextSibling
+						break
+			abv_str = abv_text.string.replace(u'\xa0', u' ')
+			abv = abv_str.split(' ')[3]
+			beer_style = str(style[0]).split('>')[2].split('<')[0]
+			style_id = str(style[0]).split('/')[3]
+			rating_text = 'BAscore_big ba-score'
+			span = soup.find_all('span', {'class': rating_text})
+			ba_rating = span[0].string
+			title_text = 'titleBar'
+			title = soup.find_all('div', {'class': title_text})
+			title = str(title[0])
+			beer_name = title.split('<')[2].split('>')[1]
+			brewery_name = title.split('<')[3].split('- ')[1]
+			print beer_name
+			print brewery_name
+			print ba_rating
+			print beer_style
+			print style_id
+			print abv
+			beer_data = BeerData(brewery=brewery_name, beer=beer_name, rating=ba_rating, abv=abv, btype=beer_style, style_id=style_id, beer_id=id_num)
+			beer_key = beer_data.put()
+			time.sleep(0.1)
+			self.redirect('/')
+
+class Create(webapp2.RequestHandler):
+	def get(self):
+		user = users.get_current_user()
+		if user:
+			url = users.create_logout_url('/')
+			url_linktext = 'Logout'
+			template_values = {
+			'url': url,
+ 			'url_linktext': url_linktext,
+ 			}
+		else:
+			url = users.create_login_url(self.request.uri)
+			url_linktext = 'Login'
+			template_values = {
+				'url': url,
+ 				'url_linktext': url_linktext,
+ 			}
+
+		template = JINJA_ENVIRONMENT.get_template('create.html')
+ 		self.response.write(template.render(template_values))
 
 
 class MainPage(webapp2.RequestHandler):
@@ -114,8 +160,10 @@ class MainPage(webapp2.RequestHandler):
 			'url': url,
  			'url_linktext': url_linktext,
  			}
+			all_beers = BeerData.query().fetch()
+			print all_beers
 			template = JINJA_ENVIRONMENT.get_template('mainpage.html')
-			self.response.write(template.render(template_values))
+ 			self.response.write(template.render(template_values))
 		else:
 			greeting = 'Sign in or register:'
 			url = users.create_login_url(self.request.uri)
@@ -125,31 +173,31 @@ class MainPage(webapp2.RequestHandler):
 				'url': url,
  				'url_linktext': url_linktext,
  			}
-			template = JINJA_ENVIRONMENT.get_template('mainpage.html')
+			template = JINJA_ENVIRONMENT.get_template('index.html')
  			self.response.write(template.render(template_values))
 
 
 # create new view class handler for android app, should return json dumped data of all necessary info for app
 # must pass stream name in order for handler to grab for ViewSingleAndroid
-class ViewAndroid(webapp2.RequestHandler):
+class BeerDataAndroid(webapp2.RequestHandler):
 	def get(self):
 		#don't need to check for user info?
-		all_streams = BeerStream.query().fetch()
-		img_info = {}
-		test = {}
-		for x in xrange(len(all_streams)):
-			stream_name = all_streams[x].stream_name
-			img_info[stream_name+'_length'] = len(all_streams[x].info[stream_name]['stream_urls'])
-			img_info[stream_name] = all_streams[x].info[stream_name]['stream_urls']
-			test[stream_name] = str(len(all_streams[x].info[stream_name]['stream_urls']))
-			for y in xrange(len(all_streams[x].info[stream_name]['stream_urls'])):
-				test[stream_name] = test[stream_name] +' '+ str( all_streams[x].info[stream_name]['stream_urls'][y][0])
-		print test
-				
-		if len(img_info) == 0:
-			img_info['no_stream'] = 'no streams yet'			
+		all_beers = BeerData.query().fetch()
+		print 'get all beer data'
+		beer_info = {}
+		for x in xrange(len(all_beers)):
+			# create build_dict function for this?
+			beer_info[all_beers[x].beer] = {}
+			beer_info[all_beers[x].beer]['rating'] = all_beers[x].rating
+			beer_info[all_beers[x].beer]['brewery'] = all_beers[x].brewery
+			beer_info[all_beers[x].beer]['abv'] = all_beers[x].abv
+			beer_info[all_beers[x].beer]['beer_type'] = all_beers[x].btype
+					
+		print beer_info		
+		if len(beer_info) == 0:
+			beer_info['no_data'] = 'no beer data yet'			
 		#android_data = json.dumps(img_info, sort_keys=True, separators=(',',':'))
-		android_data = json.dumps(test, sort_keys=True, separators=(',',':'))
+		android_data = json.dumps(beer_info, sort_keys=True, separators=(',',':'))
 		self.response.headers['Content-Type'] = 'application/json'
 		self.response.write(android_data)
 		webapp2.Response(android_data)
@@ -255,8 +303,9 @@ class NotFoundPageHandler(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
   ('/', MainPage),
+	('/create', Create),
 	('/callsoup', callSoup),
-	('/viewandroid', ViewAndroid),
+	('/getbeer', BeerDataAndroid),
 	('/viewsingleandroid/([^/]+)?', ViewSingleAndroid),
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
 	('/uploadandroid', UploadAndroid),

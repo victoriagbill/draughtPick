@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en-us">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script> 
+	<script type="text/javascript" src="/js/lightbox.min.js"></script>
+	<script type="text/javascript" src="/js/scripts.js"></script>
+	<!--<link rel="stylesheet" href="/css/screen.css" /> -->
+	<link rel="stylesheet" href="/css/lightbox.css" /> 
+	<!-- Bootstrap styles, makes the buttons nice, just copy that into my css? don't like other elements... -->
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+	<!-- CSS to style the file input field as button and adjust the Bootstrap progress bars -->
+	<link rel="stylesheet" href="/css/jquery.fileupload.css">
+	<link rel="stylesheet" href="/css/jquery.fileupload-ui.css">
+	<link rel="stylesheet" href="/stylesheets/main.css" /> 
+</head>
+  <body>
+	<h1>Welcome to Connexus</h1>
+	<hr>
+	<h3>Share the world:</h3>
+	
+  <p>{{ greeting }}</p>
+  <a href="{{ url|safe }}">{{ url_linktext }}</a>
+	
+	</br>
+	</br>
+	</br>
+	<hr>
+
+  <!--<form action="/invite" method="post">Testing email invite:
+    <input value="invite_email" name="invite_email">
+    <input type="submit" value="send">
+  </form>
+
+  <!--<a href="{{ url|safe }}">{{ url_linktext }}</a> -->
+
+  </body>
+</html>
+{% endautoescape %}

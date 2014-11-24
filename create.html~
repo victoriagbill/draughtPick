@@ -11,23 +11,29 @@
 	<link rel="stylesheet" href="/css/lightbox.css" /> 
 	<link rel="stylesheet" href="/stylesheets/main.css" /> 
 </head>
-  <body>
+ <body>
 	<header>
-		<h2>Draught Pick</h2>
+		<h2>Connex.us</h2>
 	</header>
+
 	
 	<nav>
-		<h3><a href="/">Home</a> | <a href="/create">Create</a></h3>
-
+		<h3><a href="/">Home</a> | <a href="/create">Create</a>
 	</nav>
 
-	</br>
+		</br>
+		<!-- How to separate columns? Submit button at bottom -->
+		<h4>Enter a beer name to search:</h4>
+		</br></br>
+		<form action="/callsoup" method="GET">
+				<input type="text" name="id_number">
+			<h4>Name your stream</h4><br><br>
 
-	<p><b>{{ greeting }}</b></p>
-	
+			<button type="submit">
+          <span>Search</span>
+      </button>
+		</form>
 
-
-	
 
 	<footer>
 		</br>
