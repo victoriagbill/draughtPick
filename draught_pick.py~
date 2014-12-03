@@ -112,7 +112,9 @@ class callSoup(webapp2.RequestHandler):
 			title_text = 'titleBar'
 			title = soup.find_all('div', {'class': title_text})
 			title = str(title[0])
-			beer_name = title.split('<')[2].split('>')[1]
+			beer = title.split('<')[2].split('>')[1]
+			#beer_name.replace(u'&amp;', u'&')
+			beer_name = beer.replace('&amp;','&')
 			brewery_name = title.split('<')[3].split('- ')[1]
 			print beer_name
 			print brewery_name
@@ -299,6 +301,17 @@ class NotFoundPageHandler(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('error.html')
 		self.response.write(template.render(template_values))	
 
+class Delete(webapp2.RequestHandler):
+	def get(self):
+		beer_id = '10284/132547/'
+		del_beer = BeerData.query(BeerData.beer_id==beer_id).fetch()
+		del_key = del_beer[0].key
+		print del_key
+		del_key.delete()
+		time.sleep(0.1)
+		self.redirect('/')
+		
+		
 
 
 application = webapp2.WSGIApplication([
@@ -310,6 +323,7 @@ application = webapp2.WSGIApplication([
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
 	('/uploadandroid', UploadAndroid),
 	('/imageurl', UploadURL),
+	('/delete', Delete),
 	('/.*', NotFoundPageHandler),
 ], debug=True)
 
