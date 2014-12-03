@@ -49,7 +49,8 @@ class Vendors(ndb.Model):
 	vendor_name = ndb.StringProperty()
 	breweries = ndb.StringProperty(repeated=True)
 	ratings = ndb.IntegerProperty(repeated=True)
-	beer_info = ndb.JsonProperty() 
+	beer_info = ndb.JsonProperty() # beer info will include ratings and everything in BeerData
+									# but want to be able to serve ratings separately for map display
 	timestamps = ndb.StringProperty(repeated=True)
 	# ! want to store beer advocate beer id and brewery id
 	# format is url/beer/profile/brew#/beer#/
@@ -145,7 +146,45 @@ class Create(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('create.html')
  		self.response.write(template.render(template_values))
+		
 
+class getVendors(webapp2.RequestHandler):
+	# can call from Android to get list of vendors with beer on tap
+	def get(self):
+		vendor_name = 'Draught House Pub & Brewery'
+	
+	
+	
+class buildVendors(webapp2.RequestHandler):
+	# hard code in local vendor latitude and longitude for now
+	# eventually want to allow users to create a new vendor by location
+	# for now, need: location, vendor_name, breweries, ratings, beer_info, timestamps
+	def get(self):
+		# draughthouse
+		location = '30.311073, -97.742853'
+		vendor_name = 'Draught House Pub & Brewery'
+		# associate beer names first? or beer id #s? then loop through to grab ratings, breweries?
+		breweries = []
+		ratings = []
+		# timestamps is last updated picture
+		# for now just add timestamp for date created
+		
+		
+		# pinthouse
+		location = '30.318782, -97.739072'
+		vendor_name = 'Pinthouse Pizza Craft Brewpub'
+		
+		
+		# bangers
+		location = '30.258859, -97.738351'
+		vendor_name = "Banger's Sausage House & Beer Garden"
+		
+		
+		# craft pride
+		location = '30.257934, -97.738850'
+		vendor_name = 'Craft Pride'
+		
+		
 
 class MainPage(webapp2.RequestHandler):
 	#main page = login, should check for login then dump to manage page?
