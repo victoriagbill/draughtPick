@@ -8,6 +8,7 @@ import collections
 from bs4 import BeautifulSoup as bs
 import urllib2
 from random import choice
+from haversine import haversine
 
 from google.appengine.api import users
 from google.appengine.api import mail, images, files
@@ -48,8 +49,9 @@ class Vendors(ndb.Model):
 	location = ndb.StringProperty()
 	vendor_name = ndb.StringProperty()
 	breweries = ndb.StringProperty(repeated=True)
-	ratings = ndb.IntegerProperty(repeated=True)
-	beer_info = ndb.JsonProperty() 
+	ratings = ndb.StringProperty(repeated=True)
+	beer_info = ndb.JsonProperty() # beer info will include ratings and everything in BeerData
+									# but want to be able to serve ratings separately for map display
 	timestamps = ndb.StringProperty(repeated=True)
 	# ! want to store beer advocate beer id and brewery id
 	# format is url/beer/profile/brew#/beer#/
@@ -147,7 +149,140 @@ class Create(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('create.html')
  		self.response.write(template.render(template_values))
+		
 
+class getVendors(webapp2.RequestHandler):
+	# can call from Android to get list of vendors with beer on tap
+	# want to get all for now, change to certain radius later
+	def get(self):
+		"""
+		vendor_name = 'Draught House Pub & Brewery'
+		vendor = Vendors.query(Vendors.vendor_name==vendor_name).fetch()
+		vendor_info = {}
+		if len(vendor) > 0:
+			vendor_info[vendor_name] = {}
+			vendor_info[vendor_name]['location'] = vendor[0].location
+			vendor_info[vendor_name]['breweries'] = vendor[0].breweries
+			vendor_info[vendor_name]['ratings'] = vendor[0].ratings
+			vendor_info[vendor_name]['beer_info'] = vendor[0].beer_info
+			vendor_info[vendor_name]['timestamps'] = vendor[0].timestamps
+			android_data = json.dumps(vendor_info, sort_keys=True, separators=(',',':'))
+			self.response.headers['Content-Type'] = 'application/json'
+			self.response.write(android_data)
+			webapp2.Response(android_data)
+		"""
+		# comment everything above and uncomment below if want to return all vendors
+		# comment below and uncomment above if just want one
+		vendors = Vendors.query().fetch()
+		print vendors
+		print "length of vendors"
+		print len(vendors)
+		vendor_info = {}
+		for x in xrange(len(vendors)):
+			vendor_name = vendors[x].vendor_name
+			vendor_info[vendor_name] = {}
+			vendor_info[vendor_name]['location'] = vendors[x].location
+			vendor_info[vendor_name]['breweries'] = vendors[x].breweries
+			vendor_info[vendor_name]['ratings'] = vendors[x].ratings
+			vendor_info[vendor_name]['beer_info'] = vendors[x].beer_info
+			vendor_info[vendor_name]['timestamps'] = vendors[x].timestamps
+		android_data = json.dumps(vendor_info, sort_keys=True, separators=(',',':'))
+		self.response.headers['Content-Type'] = 'application/json'
+		self.response.write(android_data)
+		webapp2.Response(android_data)
+		
+
+
+class getLocations(webapp2.RequestHandler):
+	# should this be all locations or locations within phone radius?
+	# not sure how to pass location from phone to server
+	def get(self):
+		vendor_name = 'Draught House Pub & Brewery'
+	
+	
+class buildVendors(webapp2.RequestHandler):
+	# hard code in local vendor latitude and longitude for now
+	# eventually want to allow users to create a new vendor by location
+	# for now, need: location, vendor_name, breweries, ratings, beer_info, timestamps
+	def get(self):
+		# draughthouse
+		# crawl their on tap widget page?
+		location = '30.311073, -97.742853'
+		vendor_name = 'Draught House Pub & Brewery'
+		# timestamps is last updated picture
+		# for now just add timestamp for date created
+		timestamps = [str(datetime.now())]
+		if Vendors.query(Vendors.vendor_name==vendor_name).fetch():
+			print "already have this one"
+		else:
+			url = 'https://www.taplister.com/public/widget/40b13b00f964a5209af31ee3'
+			req = urllib2.Request(url)
+			htmlText = urllib2.urlopen(req).read()
+	 		soup = bs(htmlText)
+			td = soup.find_all('td')
+			beers_tap = []
+			brews_tap = []
+			for x in xrange(len(td)):
+				if x == 0 or x%4 == 0:
+					beers_tap.append(td[x].string)
+					brewery = td[x+1].string
+					brew = brewery.replace(u'\xa0', '')
+					brews_tap.append(brew)
+			# associate beer names first? or beer id #s? then loop through to grab ratings, breweries?
+			beer_info = {}
+			ratings = []
+			for x in beers_tap:
+				beer_stream = BeerData.query(BeerData.beer==x).fetch()
+				if len(beer_stream) > 0:
+					print beer_stream
+					ratings.append(beer_stream[0].rating)
+					beer_info[beer_stream[0].beer] = {}
+					beer_info[beer_stream[0].beer]['rating'] = beer_stream[0].rating
+					beer_info[beer_stream[0].beer]['brewery'] = beer_stream[0].brewery
+					beer_info[beer_stream[0].beer]['abv'] = beer_stream[0].abv
+					beer_info[beer_stream[0].beer]['beer_type'] = beer_stream[0].btype
+			vendor = Vendors(location=location, vendor_name=vendor_name, breweries=brews_tap, ratings=ratings, beer_info=beer_info, timestamps=timestamps)
+			vendor_key = vendor.put()		
+		
+		# pinthouse
+		location = '30.318782, -97.739072'
+		vendor_name = 'Pinthouse Pizza Craft Brewpub'
+		if Vendors.query(Vendors.vendor_name==vendor_name).fetch():
+			print "already have this one"
+		else:
+			vendor = Vendors(location=location, vendor_name=vendor_name, breweries=[vendor_name], timestamps=timestamps)
+			vendor_key = vendor.put()
+				
+		# bangers
+		location = '30.258859, -97.738351'
+		vendor_name = "Banger's Sausage House & Beer Garden"
+		if Vendors.query(Vendors.vendor_name==vendor_name).fetch():
+			print "already have this one"
+		else:
+			vendor = Vendors(location=location, vendor_name=vendor_name, timestamps=timestamps)
+			vendor_key = vendor.put()		
+		
+		# craft pride
+		location = '30.257934, -97.738850'
+		vendor_name = 'Craft Pride'
+		if Vendors.query(Vendors.vendor_name==vendor_name).fetch():
+			print "already have this one"
+		else:
+			vendor = Vendors(location=location, vendor_name=vendor_name, timestamps=timestamps)
+			vendor_key = vendor.put()
+
+		# jester king
+		location = '30.230632,-98.000003'
+		vendor_name = 'Jester King Brewery'
+		if Vendors.query(Vendors.vendor_name==vendor_name).fetch():
+			print "already have this one"
+		else:
+			vendor = Vendors(location=location, vendor_name=vendor_name, breweries=[vendor_name], timestamps=timestamps)
+			vendor_key = vendor.put()
+
+		self.response.write("finished building vendors")
+		
+		
 
 class MainPage(webapp2.RequestHandler):
 	#main page = login, should check for login then dump to manage page?
@@ -303,16 +438,14 @@ class NotFoundPageHandler(webapp2.RequestHandler):
 
 class Delete(webapp2.RequestHandler):
 	def get(self):
-		beer_id = '10284/132547/'
-		del_beer = BeerData.query(BeerData.beer_id==beer_id).fetch()
+		beer_name = "Power &amp; Light Pale"
+		del_beer = BeerData.query(BeerData.beer==beer_name).fetch()
 		del_key = del_beer[0].key
 		print del_key
 		del_key.delete()
 		time.sleep(0.1)
 		self.redirect('/')
 		
-		
-
 
 application = webapp2.WSGIApplication([
   ('/', MainPage),
@@ -323,6 +456,8 @@ application = webapp2.WSGIApplication([
 	('/viewnearbyandroid/([^/]+)?', ViewNearbyAndroid),
 	('/uploadandroid', UploadAndroid),
 	('/imageurl', UploadURL),
+	('/buildvendors', buildVendors),
+	('/getvendors', getVendors),
 	('/delete', Delete),
 	('/.*', NotFoundPageHandler),
 ], debug=True)
